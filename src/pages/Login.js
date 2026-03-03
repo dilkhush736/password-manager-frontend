@@ -45,13 +45,10 @@ function Login() {
       // 🔥 Save token
       localStorage.setItem("token", res.data.token);
 
-      // 🔥 Save username (if backend sends it)
-      const username =
-        res.data.user?.username || formData.email.split("@")[0];
-
+      // 🔥 Save full user object properly
       localStorage.setItem(
         "user",
-        JSON.stringify({ username })
+        JSON.stringify(res.data.user)
       );
 
       navigate("/dashboard");
@@ -89,6 +86,13 @@ function Login() {
             onChange={handleChange}
             required
           />
+
+          {/* 🔐 Forgot Password Link */}
+          <div style={{ textAlign: "right", marginBottom: "10px" }}>
+            <Link to="/forgot-password" className="forgot-link">
+              Forgot Password?
+            </Link>
+          </div>
 
           <button type="submit" disabled={loading}>
             {loading ? "Logging in..." : "Login"}

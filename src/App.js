@@ -6,6 +6,8 @@ import "bootstrap/dist/js/bootstrap.bundle.min";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Dashboard from "./pages/Dashboard";
+import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
 import Navbar from "./Navbar";
 
 function AppWrapper() {
@@ -22,41 +24,60 @@ function App() {
   const location = useLocation();
   const navigate = useNavigate();
 
-  // 🌙 Toggle Dark Mode
+  const publicRoutes = ["/", "/register", "/forgot-password"];
+  const isResetRoute = location.pathname.startsWith("/reset-password");
+
+  // 🌙 Dark Mode
   const toggleDarkMode = () => {
     setDarkMode((prev) => !prev);
   };
 
-  // 🌙 Apply Dark Mode Class
   useEffect(() => {
-    if (darkMode) {
-      document.body.classList.add("dark-mode");
-    } else {
-      document.body.classList.remove("dark-mode");
-    }
+    if (darkMode) document.body.classList.add("dark-mode");
+    else document.body.classList.remove("dark-mode");
   }, [darkMode]);
 
-  // 🔥 Load username from localStorage on refresh
+  // ✅ Load user (with fallback) + refresh on route change
   useEffect(() => {
     const storedUser = localStorage.getItem("user");
-    if (storedUser) {
-      const parsedUser = JSON.parse(storedUser);
-      setUsername(parsedUser.username);
-    }
-  }, []);
+    const ultraUser = localStorage.getItem("ultraUser");
 
-  // 🚪 Logout Function
+    if (storedUser) {
+      try {
+        const parsedUser = JSON.parse(storedUser);
+        const finalName =
+          parsedUser?.name ||
+          parsedUser?.username ||
+          (parsedUser?.email ? parsedUser.email.split("@")[0] : "") ||
+          ultraUser ||
+          "User";
+
+        setUsername(finalName);
+      } catch (e) {
+        setUsername(ultraUser || "User");
+      }
+    } else {
+      setUsername(ultraUser || "User");
+    }
+  }, [location.pathname]);
+
+  // 🚪 Logout
   const handleLogout = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
+    localStorage.removeItem("ultraUser");
+    localStorage.removeItem("ultraVault"); // optional (remove if you want to keep vault)
     setUsername("");
-    navigate("/");
+    navigate("/", { replace: true });
   };
+
+  // ✅ Navbar show condition (TOKEN based)
+  const token = localStorage.getItem("token");
+  const showNavbar = !!token && !publicRoutes.includes(location.pathname) && !isResetRoute;
 
   return (
     <>
-      {/* Navbar only show on dashboard if logged in */}
-      {location.pathname === "/dashboard" && username && (
+      {showNavbar && (
         <Navbar
           username={username}
           onLogout={handleLogout}
@@ -69,6 +90,8 @@ function App() {
         <Route path="/" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password/:token" element={<ResetPassword />} />
       </Routes>
     </>
   );

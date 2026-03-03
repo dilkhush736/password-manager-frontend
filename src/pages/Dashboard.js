@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from "react";
-import Navbar from "../Navbar";
 import {
   FaEye,
   FaTrash,
@@ -9,10 +8,13 @@ import {
 } from "react-icons/fa";
 import CryptoJS from "crypto-js";
 import zxcvbn from "zxcvbn";
+import { useNavigate } from "react-router-dom";
 
 const SECRET_KEY = "ultra-master-key";
 
 function Dashboard() {
+  const navigate = useNavigate();
+
   const [username, setUsername] = useState("");
   const [masterPassword, setMasterPassword] = useState("");
   const [isUnlocked, setIsUnlocked] = useState(false);
@@ -24,7 +26,6 @@ function Dashboard() {
     password: "",
   });
 
-  // ✅ LOAD vault directly from localStorage (FIXED)
   const [vault, setVault] = useState(() => {
     const stored = localStorage.getItem("ultraVault");
     return stored ? JSON.parse(stored) : [];
@@ -34,18 +35,22 @@ function Dashboard() {
   const [searchTerm, setSearchTerm] = useState("");
   const [editIndex, setEditIndex] = useState(null);
 
-  // ✅ Load Username once
+  // 🔐 Check token on load (IMPORTANT)
   useEffect(() => {
-    const storedUser = localStorage.getItem("ultraUser");
-    if (storedUser) {
-      setUsername(storedUser);
-    } else {
-      localStorage.setItem("ultraUser", "Dilkhush");
-      setUsername("Dilkhush");
-    }
-  }, []);
+    const token = localStorage.getItem("token");
+    const storedUser = localStorage.getItem("user");
 
-  // ✅ Save vault whenever it changes
+    if (!token) {
+      navigate("/", { replace: true });
+    }
+
+    if (storedUser) {
+      const parsedUser = JSON.parse(storedUser);
+      setUsername(parsedUser.name);
+    }
+  }, [navigate]);
+
+  // Save vault
   useEffect(() => {
     localStorage.setItem("ultraVault", JSON.stringify(vault));
   }, [vault]);
@@ -146,15 +151,7 @@ function Dashboard() {
   // 🔓 MAIN DASHBOARD
   return (
     <div className={darkMode ? "bg-dark text-light min-vh-100" : "bg-light min-vh-100"}>
-      <Navbar
-        username={username}
-        onLogout={() => setIsUnlocked(false)}
-        darkMode={darkMode}
-        toggleDarkMode={() => setDarkMode(!darkMode)}
-      />
-
       <div className="container py-5" style={{ marginTop: "80px" }}>
-
         <div className="row mb-4">
           <div className="col-md-4">
             <div className="card p-3 shadow">
@@ -266,7 +263,6 @@ function Dashboard() {
             </div>
           ))}
         </div>
-
       </div>
     </div>
   );

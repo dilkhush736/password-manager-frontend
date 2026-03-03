@@ -7,22 +7,20 @@ function Navbar({ username, onLogout, darkMode, toggleDarkMode }) {
   const displayName = username || "User";
   const firstLetter = displayName.charAt(0).toUpperCase();
 
-  // 🔥 Scroll Shadow Effect
   useEffect(() => {
     const handleScroll = () => {
       setScrolled(window.scrollY > 10);
     };
-
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
   return (
-   <nav
-  className={`navbar navbar-expand-lg fixed-top ${
-    darkMode ? "navbar-dark bg-dark" : "navbar-dark bg-primary"
-  } shadow px-4`}
->
+    <nav
+      className={`navbar navbar-expand-lg fixed-top ${
+        darkMode ? "navbar-dark bg-dark" : "navbar-light bg-white"
+      } ${scrolled ? "shadow-lg" : "shadow-sm"} px-4`}
+    >
       <div className="container-fluid">
 
         {/* Brand */}
@@ -37,12 +35,13 @@ function Navbar({ username, onLogout, darkMode, toggleDarkMode }) {
           🔐 Ultra Vault
         </span>
 
-        {/* Right Side */}
         <div className="d-flex align-items-center gap-3">
 
           {/* Dark Mode Toggle */}
           <button
-            className="btn btn-outline-primary btn-sm"
+            className={`btn btn-sm ${
+              darkMode ? "btn-outline-light" : "btn-outline-dark"
+            }`}
             onClick={toggleDarkMode}
             style={{ borderRadius: "20px" }}
           >
@@ -52,7 +51,9 @@ function Navbar({ username, onLogout, darkMode, toggleDarkMode }) {
           {/* User Dropdown */}
           <div className="dropdown">
             <button
-              className="btn btn-light dropdown-toggle d-flex align-items-center gap-2 shadow-sm"
+              className={`btn ${
+                darkMode ? "btn-secondary" : "btn-light"
+              } dropdown-toggle d-flex align-items-center gap-2 shadow-sm`}
               data-bs-toggle="dropdown"
               style={{
                 borderRadius: "30px",
@@ -60,7 +61,6 @@ function Navbar({ username, onLogout, darkMode, toggleDarkMode }) {
                 transition: "0.3s"
               }}
             >
-              {/* Gradient Avatar */}
               <div
                 className="rounded-circle d-flex align-items-center justify-content-center text-white"
                 style={{
