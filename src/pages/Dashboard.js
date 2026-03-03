@@ -1,23 +1,27 @@
 import React, { useState, useEffect } from "react";
-import {
-  FaEye,
-  FaTrash,
-  FaCopy,
-  FaEdit,
-  FaLock,
-} from "react-icons/fa";
+import { FaEye, FaTrash, FaCopy, FaEdit, FaLock } from "react-icons/fa";
 import CryptoJS from "crypto-js";
 import zxcvbn from "zxcvbn";
 import { useNavigate } from "react-router-dom";
+import API from "../api";
 
-const SECRET_KEY = "ultra-master-key";
+// ✅ V2: Removed hardcoded SECRET_KEY
 
 function Dashboard() {
   const navigate = useNavigate();
 
   const [username, setUsername] = useState("");
+  const [userId, setUserId] = useState("");
+
   const [masterPassword, setMasterPassword] = useState("");
+  const [confirmMasterPassword, setConfirmMasterPassword] = useState("");
+
   const [isUnlocked, setIsUnlocked] = useState(false);
+  const [needsSetup, setNeedsSetup] = useState(false);
+
+  const [loading, setLoading] = useState(false);
+  const [lockError, setLockError] = useState("");
+
   const [darkMode, setDarkMode] = useState(false);
 
   const [formData, setFormData] = useState({
@@ -33,116 +37,356 @@ function Dashboard() {
 
   const [visible, setVisible] = useState({});
   const [searchTerm, setSearchTerm] = useState("");
-  const [editIndex, setEditIndex] = useState(null);
+  const [editId, setEditId] = useState(null);
 
-  // 🔐 Check token on load (IMPORTANT)
+  // 🔐 Check token + load user
   useEffect(() => {
     const token = localStorage.getItem("token");
     const storedUser = localStorage.getItem("user");
 
     if (!token) {
       navigate("/", { replace: true });
+      return;
     }
 
     if (storedUser) {
       const parsedUser = JSON.parse(storedUser);
-      setUsername(parsedUser.name);
+      setUsername(parsedUser?.name || "User");
+
+      // ✅ safer: support id and _id
+      setUserId(parsedUser?.id || parsedUser?._id || "");
     }
   }, [navigate]);
+
+  // ✅ AUTO-LOCK on refresh + tab switch
+  useEffect(() => {
+    // refresh/reload => lock + clear master
+    setIsUnlocked(false);
+    setMasterPassword("");
+    setConfirmMasterPassword("");
+
+    const handleBlur = () => {
+      setIsUnlocked(false);
+      setMasterPassword("");
+      setConfirmMasterPassword("");
+      setVisible({});
+      setEditId(null);
+      setFormData({ platform: "", email: "", password: "" });
+    };
+
+    window.addEventListener("blur", handleBlur);
+    return () => window.removeEventListener("blur", handleBlur);
+  }, []);
+
+  // ✅ AUTO-LOCK after 2 minutes inactivity
+  useEffect(() => {
+    if (!isUnlocked) return;
+
+    let timer;
+
+    const resetTimer = () => {
+      clearTimeout(timer);
+      timer = setTimeout(() => {
+        setIsUnlocked(false);
+
+        // clear sensitive state on timeout
+        setMasterPassword("");
+        setConfirmMasterPassword("");
+        setVisible({});
+        setEditId(null);
+        setFormData({ platform: "", email: "", password: "" });
+
+        alert("Session expired 🔒");
+      }, 2 * 60 * 1000);
+    };
+
+    const events = ["mousemove", "keydown", "click", "scroll", "touchstart"];
+    events.forEach((e) => window.addEventListener(e, resetTimer));
+    resetTimer();
+
+    return () => {
+      clearTimeout(timer);
+      events.forEach((e) => window.removeEventListener(e, resetTimer));
+    };
+  }, [isUnlocked]);
+
+  // ✅ Decide: master password setup needed or not (UPDATED to master-status route)
+  useEffect(() => {
+    const checkMasterSetup = async () => {
+      if (!userId) return;
+
+      try {
+        setLoading(true);
+        setLockError("");
+
+        const res = await API.get(`/auth/master-status/${userId}`);
+
+        // isSet = true => master exists => needsSetup false
+        // isSet = false => first time => needsSetup true
+        setNeedsSetup(!res?.data?.isSet);
+      } catch (err) {
+        console.log("master-status error:", err?.response?.data || err.message);
+        // fallback: if anything fails, show setup to avoid blocking user
+        setNeedsSetup(true);
+        setLockError(
+          err?.response?.data?.message || "Unable to check master password status"
+        );
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    checkMasterSetup();
+  }, [userId]);
+
+  // ✅ Ensure every item has an id (for older localStorage data)
+  useEffect(() => {
+    const hasMissingId = vault.some((item) => !item?.id);
+    if (!hasMissingId) return;
+
+    setVault((prev) =>
+      prev.map((item, idx) => ({
+        id: item?.id || Date.now() + idx,
+        ...item,
+      }))
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Save vault
   useEffect(() => {
     localStorage.setItem("ultraVault", JSON.stringify(vault));
   }, [vault]);
 
-  const encrypt = (text) =>
-    CryptoJS.AES.encrypt(text, SECRET_KEY).toString();
+  // ✅ V2: Encrypt/Decrypt uses MASTER PASSWORD (real security)
+  const encrypt = (text) => CryptoJS.AES.encrypt(text, masterPassword).toString();
 
   const decrypt = (cipher) => {
-    const bytes = CryptoJS.AES.decrypt(cipher, SECRET_KEY);
+    const bytes = CryptoJS.AES.decrypt(cipher, masterPassword);
     return bytes.toString(CryptoJS.enc.Utf8);
   };
 
-  const handleUnlock = () => {
-    if (masterPassword === "1234") {
-      setIsUnlocked(true);
-    } else {
-      alert("Wrong Master Password!");
+  // ✅ Lock Now (manual lock)
+  const handleLockNow = () => {
+    setIsUnlocked(false);
+    setVisible({});
+    setEditId(null);
+    setFormData({ platform: "", email: "", password: "" });
+
+    // clear master password on lock
+    setMasterPassword("");
+    setConfirmMasterPassword("");
+  };
+
+  // ✅ First time: set master password
+  const handleSetMasterPassword = async () => {
+    setLockError("");
+
+    if (!masterPassword || !confirmMasterPassword) {
+      return setLockError("All fields are required");
+    }
+    if (masterPassword.length < 4) {
+      return setLockError("Master password must be at least 4 characters");
+    }
+    if (masterPassword !== confirmMasterPassword) {
+      return setLockError("Master passwords do not match");
+    }
+
+    try {
+      setLoading(true);
+
+      const res = await API.post("/auth/set-master-password", {
+        userId,
+        masterPassword,
+      });
+
+      if (res.data.success) {
+        setNeedsSetup(false);
+        setIsUnlocked(true);
+
+        // ✅ keep masterPassword (needed for encrypt/decrypt)
+        setConfirmMasterPassword("");
+      }
+    } catch (err) {
+      setLockError(err?.response?.data?.message || "Server error");
+    } finally {
+      setLoading(false);
     }
   };
 
+  // ✅ Normal unlock: verify master password
+  const handleUnlock = async () => {
+    setLockError("");
+
+    if (!masterPassword) {
+      return setLockError("Master password is required");
+    }
+
+    try {
+      setLoading(true);
+
+      const res = await API.post("/auth/verify-master-password", {
+        userId,
+        masterPassword,
+      });
+
+      if (res.data.success) {
+        setIsUnlocked(true);
+        // ✅ keep masterPassword for decrypt/copy/show
+      }
+    } catch (err) {
+      setLockError(err?.response?.data?.message || "Wrong master password");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // ✅ Save / Update (id-based)
   const handleSave = () => {
     if (!formData.platform || !formData.email || !formData.password) return;
 
+    if (!masterPassword) {
+      alert("Master password missing. Please lock & unlock again.");
+      return;
+    }
+
     const encryptedPass = encrypt(formData.password);
 
-    if (editIndex !== null) {
-      const updated = [...vault];
-      updated[editIndex] = {
-        ...formData,
-        password: encryptedPass,
-      };
-      setVault(updated);
-      setEditIndex(null);
+    if (editId !== null) {
+      setVault((prev) =>
+        prev.map((item) =>
+          item.id === editId
+            ? { ...item, ...formData, password: encryptedPass }
+            : item
+        )
+      );
+      setEditId(null);
     } else {
-      setVault([...vault, { ...formData, password: encryptedPass }]);
+      setVault((prev) => [
+        ...prev,
+        {
+          id: Date.now(),
+          ...formData,
+          password: encryptedPass,
+        },
+      ]);
     }
 
     setFormData({ platform: "", email: "", password: "" });
   };
 
-  const handleEdit = (index) => {
-    const item = vault[index];
+  const handleEdit = (id) => {
+    const item = vault.find((v) => v.id === id);
+    if (!item) return;
+
+    const plain = decrypt(item.password);
+    if (!plain) {
+      alert("Unable to decrypt. Please lock & unlock with correct master password.");
+      return;
+    }
+
     setFormData({
       platform: item.platform,
       email: item.email,
-      password: decrypt(item.password),
+      password: plain,
     });
-    setEditIndex(index);
+    setEditId(id);
   };
 
-  const handleDelete = (index) => {
-    setVault(vault.filter((_, i) => i !== index));
+  const handleDelete = (id) => {
+    setVault((prev) => prev.filter((item) => item.id !== id));
+    setVisible((prev) => {
+      const next = { ...prev };
+      delete next[id];
+      return next;
+    });
+    if (editId === id) setEditId(null);
   };
 
-  const toggleView = (index) => {
-    setVisible({ ...visible, [index]: !visible[index] });
+  const toggleView = (id) => {
+    setVisible((prev) => ({ ...prev, [id]: !prev[id] }));
   };
 
   const handleCopy = (encrypted) => {
-    navigator.clipboard.writeText(decrypt(encrypted));
+    const plain = decrypt(encrypted);
+    if (!plain) {
+      alert("Unable to decrypt. Please lock & unlock with correct master password.");
+      return;
+    }
+    navigator.clipboard.writeText(plain);
     alert("Copied!");
   };
 
   const filteredVault = vault.filter((item) =>
-    item.platform.toLowerCase().includes(searchTerm.toLowerCase())
+    (item.platform || "").toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const strength = formData.password
-    ? zxcvbn(formData.password).score
-    : null;
-
+  const strength = formData.password ? zxcvbn(formData.password).score : null;
   const strengthText = ["Weak", "Fair", "Good", "Strong", "Very Strong"];
 
-  // 🔐 LOCK SCREEN
+  // 🔐 LOCK SCREEN (SETUP OR UNLOCK)
   if (!isUnlocked) {
     return (
       <div className="d-flex justify-content-center align-items-center min-vh-100 bg-light">
-        <div className="card p-5 shadow-lg text-center" style={{ width: "400px" }}>
-          <h3 className="mb-3">
+        <div className="card p-5 shadow-lg text-center" style={{ width: "420px" }}>
+          <h3 className="mb-2">
             <FaLock className="me-2" />
-            Enter Master Password
+            {needsSetup ? "Set Master Password" : "Enter Master Password"}
           </h3>
-          <input
-            type="password"
-            className="form-control mb-3"
-            placeholder="Master Password"
-            value={masterPassword}
-            onChange={(e) => setMasterPassword(e.target.value)}
-          />
-          <button className="btn btn-primary w-100" onClick={handleUnlock}>
-            Unlock Vault
-          </button>
+
+          <p className="text-muted mb-3" style={{ fontSize: "14px" }}>
+            {needsSetup
+              ? "First time setup — choose a strong master password."
+              : `Welcome back, ${username}. Unlock your vault.`}
+          </p>
+
+          {lockError && <div className="alert alert-danger py-2">{lockError}</div>}
+
+          {needsSetup ? (
+            <>
+              <input
+                type="password"
+                className="form-control mb-3"
+                placeholder="Create Master Password"
+                value={masterPassword}
+                onChange={(e) => setMasterPassword(e.target.value)}
+              />
+
+              <input
+                type="password"
+                className="form-control mb-3"
+                placeholder="Confirm Master Password"
+                value={confirmMasterPassword}
+                onChange={(e) => setConfirmMasterPassword(e.target.value)}
+              />
+
+              <button
+                className="btn btn-success w-100"
+                onClick={handleSetMasterPassword}
+                disabled={loading}
+              >
+                {loading ? "Setting..." : "Set & Unlock"}
+              </button>
+            </>
+          ) : (
+            <>
+              <input
+                type="password"
+                className="form-control mb-3"
+                placeholder="Master Password"
+                value={masterPassword}
+                onChange={(e) => setMasterPassword(e.target.value)}
+              />
+
+              <button
+                className="btn btn-primary w-100"
+                onClick={handleUnlock}
+                disabled={loading}
+              >
+                {loading ? "Unlocking..." : "Unlock Vault"}
+              </button>
+            </>
+          )}
         </div>
       </div>
     );
@@ -152,6 +396,19 @@ function Dashboard() {
   return (
     <div className={darkMode ? "bg-dark text-light min-vh-100" : "bg-light min-vh-100"}>
       <div className="container py-5" style={{ marginTop: "80px" }}>
+        {/* ✅ Header with Lock Now */}
+        <div className="d-flex justify-content-between align-items-center mb-4">
+          <div>
+            <h4 className="mb-0">Welcome, {username} 👋</h4>
+            <small className="text-muted">Your vault is unlocked</small>
+          </div>
+
+          <button className="btn btn-outline-danger" onClick={handleLockNow}>
+            <FaLock className="me-2" />
+            Lock Now
+          </button>
+        </div>
+
         <div className="row mb-4">
           <div className="col-md-4">
             <div className="card p-3 shadow">
@@ -189,9 +446,7 @@ function Dashboard() {
                 className="form-control"
                 placeholder="Email"
                 value={formData.email}
-                onChange={(e) =>
-                  setFormData({ ...formData, email: e.target.value })
-                }
+                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
               />
             </div>
 
@@ -214,7 +469,7 @@ function Dashboard() {
 
             <div className="col-md-3 d-grid">
               <button className="btn btn-success" onClick={handleSave}>
-                {editIndex !== null ? "Update" : "Save"}
+                {editId !== null ? "Update" : "Save"}
               </button>
             </div>
           </div>
@@ -222,18 +477,16 @@ function Dashboard() {
 
         <div className="row">
           {filteredVault.map((item, index) => (
-            <div className="col-md-6 mb-4" key={index}>
+            <div className="col-md-6 mb-4" key={item.id || index}>
               <div className="card p-3 shadow">
                 <h5>{item.platform}</h5>
                 <p className="text-muted">{item.email}</p>
-                <p>
-                  {visible[index] ? decrypt(item.password) : "••••••••"}
-                </p>
+                <p>{visible[item.id] ? decrypt(item.password) : "••••••••"}</p>
 
                 <div className="d-flex gap-2">
                   <button
                     className="btn btn-outline-secondary btn-sm"
-                    onClick={() => toggleView(index)}
+                    onClick={() => toggleView(item.id)}
                   >
                     <FaEye />
                   </button>
@@ -247,14 +500,14 @@ function Dashboard() {
 
                   <button
                     className="btn btn-warning btn-sm"
-                    onClick={() => handleEdit(index)}
+                    onClick={() => handleEdit(item.id)}
                   >
                     <FaEdit />
                   </button>
 
                   <button
                     className="btn btn-danger btn-sm"
-                    onClick={() => handleDelete(index)}
+                    onClick={() => handleDelete(item.id)}
                   >
                     <FaTrash />
                   </button>
