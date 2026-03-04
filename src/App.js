@@ -2,13 +2,17 @@ import { BrowserRouter, Routes, Route, useLocation, useNavigate } from "react-ro
 import { useState, useEffect } from "react";
 import "bootstrap/dist/css/bootstrap.min.css";
 import "bootstrap/dist/js/bootstrap.bundle.min";
-
+import AdminSubscribers from "./pages/AdminSubscribers";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Dashboard from "./pages/Dashboard";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
 import Navbar from "./Navbar";
+
+
+import AdminGate from "./pages/AdminGate";
+import RequireAdmin from "./components/RequireAdmin";
 
 function AppWrapper() {
   return (
@@ -86,13 +90,26 @@ function App() {
         />
       )}
 
-      <Routes>
-        <Route path="/" element={<Login />} />
-        <Route path="/register" element={<Register />} />
-        <Route path="/dashboard" element={<Dashboard />} />
-        <Route path="/forgot-password" element={<ForgotPassword />} />
-        <Route path="/reset-password/:token" element={<ResetPassword />} />
-      </Routes>
+    <Routes>
+  <Route path="/" element={<Login />} />
+  <Route path="/register" element={<Register />} />
+  <Route path="/dashboard" element={<Dashboard />} />
+  <Route path="/forgot-password" element={<ForgotPassword />} />
+  <Route path="/reset-password/:token" element={<ResetPassword />} />
+
+  {/* ✅ Admin Gate */}
+  <Route path="/admin" element={<AdminGate />} />
+
+  {/* ✅ Protected Subscribers */}
+  <Route
+    path="/admin/subscribers"
+    element={
+      <RequireAdmin>
+        <AdminSubscribers />
+      </RequireAdmin>
+    }
+  />
+</Routes>
     </>
   );
 }

@@ -3,6 +3,7 @@ import { FaEye, FaTrash, FaCopy, FaEdit, FaLock } from "react-icons/fa";
 import zxcvbn from "zxcvbn";
 import { useNavigate } from "react-router-dom";
 import API from "../api";
+import Footer from "../components/Footer";
 
 function Dashboard() {
   const navigate = useNavigate();
@@ -344,7 +345,7 @@ function Dashboard() {
         darkMode ? "bg-dark text-light min-vh-100" : "bg-light min-vh-100"
       }
     >
-      <div className="container py-5">
+      <div className="container py-5 mt-4">
         {/* Header */}
         <div className="d-flex justify-content-between align-items-center mb-4">
           <div>
@@ -493,8 +494,8 @@ function Dashboard() {
           ))}
         </div>
       </div>
+      <Footer />
     </div>
   );
 }
-
 export default Dashboard;
