@@ -34,6 +34,7 @@ export default function AdminPaywall({ onUnlocked }) {
                 order_id: order.id,
                 handler: async function (response) {
                     try {
+                        console.log("Razorpay response =>", response);
                         setStatus("Verifying payment...");
 
                         const vr = await fetch(`${API_BASE}/api/pay/verify`, {
@@ -42,7 +43,11 @@ export default function AdminPaywall({ onUnlocked }) {
                                 "Content-Type": "application/json",
                                 Authorization: `Bearer ${token}`,
                             },
-                            body: JSON.stringify(response),
+                            body: JSON.stringify({
+                                razorpay_order_id: response.razorpay_order_id,
+                                razorpay_payment_id: response.razorpay_payment_id,
+                                razorpay_signature: response.razorpay_signature,
+                            }),
                         });
 
                         const vd = await vr.json();
