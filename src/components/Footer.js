@@ -98,7 +98,7 @@ function Footer() {
                 <FaInstagram />
               </a>
 
-              <a className="uv-footer__iconBtn" href="https://wa.me/919999999999" target="_blank" rel="noreferrer">
+              <a className="uv-footer__iconBtn" href="https://wa.me/9905167559" target="_blank" rel="noreferrer">
                 <FaWhatsapp />
               </a>
               <a className="uv-footer__link" href="/admin">Admin</a>

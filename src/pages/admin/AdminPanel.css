@@ -1,0 +1,35 @@
+.ap-wrap{
+  margin-top: 90px; /* navbar spacing */
+  padding: 20px;
+  max-width: 1200px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.ap-head{
+  display:flex;
+  align-items:flex-end;
+  justify-content:space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+
+.ap-title{ margin:0; font-weight:800; }
+.ap-sub{ margin:6px 0 0; opacity:.8; font-size: 13px; }
+
+.ap-tabs{ display:flex; gap:10px; flex-wrap:wrap; }
+
+.ap-tab{
+  padding: 10px 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,0.18);
+  background: rgba(255,255,255,0.08);
+  color: inherit;
+  font-weight: 800;
+  cursor: pointer;
+  transition: transform .18s ease, background .18s ease;
+}
+
+.ap-tab:hover{ transform: translateY(-1px); background: rgba(255,255,255,0.12); }
+.ap-tab.active{ background: rgba(13,110,253,0.18); border-color: rgba(13,110,253,0.35); }

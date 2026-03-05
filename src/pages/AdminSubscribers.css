@@ -1,3 +1,29 @@
+/* ✅ Hide scrollbar but keep scroll */
+
+/* Chrome, Edge, Safari */
+*::-webkit-scrollbar {
+  width: 0px;
+  height: 0px;
+}
+
+/* Firefox */
+* {
+  scrollbar-width: none;      /* hides scrollbar */
+}
+
+/* IE / old Edge */
+* {
+  -ms-overflow-style: none;
+}
+
+
+body{
+  margin: 0;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background: #0b0f17;
+  color: #eaeaea;
+  overflow-x: hidden;
+}
 .as-wrap{
   min-height: 100vh;
   padding: 28px 18px;
@@ -129,4 +155,9 @@
     gap: 8px;
   }
   .as-right{ text-align:left; }
+}
+
+.as-wrap{
+    margin-top: 65px;   /* navbar se gap */
+    padding: 20px;
 }

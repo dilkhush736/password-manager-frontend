@@ -342,8 +342,10 @@ function Dashboard() {
   return (
     <div
       className={
-        darkMode ? "bg-dark text-light min-vh-100" : "bg-light min-vh-100"
-      }
+  darkMode
+    ? "app dark bg-dark text-light min-vh-100"
+    : "app light bg-light text-dark min-vh-100"
+}
     >
       <div className="container py-5 mt-4">
         {/* Header */}

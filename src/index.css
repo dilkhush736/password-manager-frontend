@@ -1,3 +1,10 @@
+body{
+  background:
+    radial-gradient(1200px 600px at 20% 10%, rgba(0,120,255,.22), transparent 60%),
+    radial-gradient(900px 500px at 80% 20%, rgba(0,255,180,.12), transparent 55%),
+    #070A12;
+  color: #fff;
+}
 .dark-mode {
   background-color: #121212;
   color: white;

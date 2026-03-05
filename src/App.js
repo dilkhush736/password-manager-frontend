@@ -9,6 +9,7 @@ import Dashboard from "./pages/Dashboard";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
 import Navbar from "./Navbar";
+import AdminPanel from "./pages/admin/AdminPanel";
 
 
 import AdminGate from "./pages/AdminGate";
@@ -96,19 +97,20 @@ function App() {
   <Route path="/dashboard" element={<Dashboard />} />
   <Route path="/forgot-password" element={<ForgotPassword />} />
   <Route path="/reset-password/:token" element={<ResetPassword />} />
+  <Route path="/admin" element={<AdminPanel />} />
 
   {/* ✅ Admin Gate */}
   <Route path="/admin" element={<AdminGate />} />
 
   {/* ✅ Protected Subscribers */}
-  <Route
-    path="/admin/subscribers"
-    element={
-      <RequireAdmin>
-        <AdminSubscribers />
-      </RequireAdmin>
-    }
-  />
+ <Route
+  path="/admin"
+  element={
+    <RequireAdmin>
+      <AdminPanel />
+    </RequireAdmin>
+  }
+/>
 </Routes>
     </>
   );

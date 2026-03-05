@@ -331,3 +331,89 @@ border-radius:6px;
 color:white;
 font-weight:600;
 }
+/* ****************************************** */
+
+/* ==============================
+   ✅ LIGHT MODE FIX (OVERRIDES)
+   Paste at END of Footer.css
+============================== */
+
+/* footer theme variables */
+.app.dark .uv-footer,
+.app .uv-footer {
+  --uv-text: #ffffff;
+  --uv-muted: rgba(255,255,255,0.78);
+
+  --uv-glass: rgba(255,255,255,0.12);
+  --uv-glass2: rgba(255,255,255,0.10);
+  --uv-border: rgba(255,255,255,0.18);
+
+  --uv-soft: rgba(0,0,0,0.05);
+}
+
+/* ✅ Light mode: glass becomes dark-glass */
+.app.light .uv-footer{
+  --uv-text: #0b1220;
+  --uv-muted: rgba(11,18,32,0.72);
+
+  --uv-glass: rgba(11,18,32,0.06);
+  --uv-glass2: rgba(11,18,32,0.05);
+  --uv-border: rgba(11,18,32,0.14);
+
+  --uv-soft: rgba(11,18,32,0.04);
+}
+
+/* apply text */
+.uv-footer{ color: var(--uv-text) !important; }
+.uv-footer__muted,
+.uv-footer__tagline,
+.uv-footer__desc,
+.uv-footer__bottom{ color: var(--uv-muted) !important; }
+
+/* card + chips + buttons + links */
+.uv-footer__card{
+  background: var(--uv-glass) !important;
+  border: 1px solid var(--uv-border) !important;
+}
+
+.uv-footer__iconBtn,
+.uv-footer__chip,
+.uv-footer__link{
+  background: var(--uv-glass2) !important;
+  border: 1px solid var(--uv-border) !important;
+  color: var(--uv-text) !important;
+}
+
+/* headings */
+.uv-footer__heading,
+.uv-footer__title{
+  color: var(--uv-text) !important;
+}
+
+/* inputs + textarea */
+.uv-footer__input,
+.uv-footer__textarea{
+  background: var(--uv-glass2) !important;
+  border: 1px solid var(--uv-border) !important;
+  color: var(--uv-text) !important;
+}
+
+.uv-footer__input::placeholder,
+.uv-footer__textarea::placeholder{
+  color: var(--uv-muted) !important;
+}
+
+/* mini badge */
+.uv-footer__mini{
+  background: var(--uv-soft) !important;
+  border: 1px solid var(--uv-border) !important;
+  color: var(--uv-muted) !important;
+}
+
+/* ✅ Light mode: background glow adjust (so it doesn’t wash out) */
+.app.light .uv-footer::before{
+  background:
+    radial-gradient(900px 220px at 15% 30%, rgba(13,110,253,0.14), transparent 55%),
+    radial-gradient(700px 220px at 85% 20%, rgba(0,0,0,0.08), transparent 55%),
+    linear-gradient(180deg, rgba(0,0,0,0.00), rgba(0,0,0,0.03));
+}
