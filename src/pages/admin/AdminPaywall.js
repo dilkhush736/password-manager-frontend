@@ -4,6 +4,7 @@ import API_BASE from "../../apiBase";
 export default function AdminPaywall({ onUnlocked }) {
   const [status, setStatus] = useState("");
   const [paymentId, setPaymentId] = useState(localStorage.getItem("lastPaymentId") || "");
+  const [paid, setPaid] = useState(false);
 
   const startPayment = async () => {
     try {
@@ -36,7 +37,6 @@ export default function AdminPaywall({ onUnlocked }) {
         order_id: order.id,
         handler: async function (response) {
           try {
-            console.log("Razorpay response =>", response);
             setStatus("Verifying payment...");
 
             const vr = await fetch(`${API_BASE}/api/pay/verify`, {
@@ -59,8 +59,8 @@ export default function AdminPaywall({ onUnlocked }) {
             setPaymentId(savedPaymentId);
             localStorage.setItem("lastPaymentId", savedPaymentId);
 
-            setStatus("Unlocked ✅");
-            onUnlocked?.();
+            setPaid(true);
+            setStatus("Payment successful ✅ Now you can download your receipt.");
           } catch (e) {
             setStatus("Error: " + e.message);
           }
@@ -114,6 +114,10 @@ export default function AdminPaywall({ onUnlocked }) {
     }
   };
 
+  const goToAdminPanel = () => {
+    onUnlocked?.();
+  };
+
   return (
     <div style={{ padding: 24 }}>
       <h2>Unlock Admin Access</h2>
@@ -123,13 +127,16 @@ export default function AdminPaywall({ onUnlocked }) {
         Pay & Unlock
       </button>
 
-      {paymentId && (
-        <button
-          onClick={downloadReceipt}
-          style={{ padding: "10px 14px", marginLeft: 10 }}
-        >
-          Download Receipt PDF
-        </button>
+      {paid && (
+        <div style={{ marginTop: 12, display: "flex", gap: "10px", flexWrap: "wrap" }}>
+          <button onClick={downloadReceipt} style={{ padding: "10px 14px" }}>
+            Download Receipt PDF
+          </button>
+
+          <button onClick={goToAdminPanel} style={{ padding: "10px 14px" }}>
+            Continue to Admin Panel
+          </button>
+        </div>
       )}
 
       {status && <div style={{ marginTop: 12 }}>{status}</div>}
