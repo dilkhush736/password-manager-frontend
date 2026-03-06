@@ -113,8 +113,43 @@ export default function AdminSubscribers() {
     }
   };
 
-  const exportCSV = () => {
-    window.open(`${API}/export/csv`, "_blank");
+  const exportCSV = async () => {
+    try {
+      setStatus("Exporting...");
+
+      const token = localStorage.getItem("token");
+      if (!token) {
+        throw new Error("Admin token not found. Please login again.");
+      }
+
+      const res = await fetch(`${API}/export/csv`, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(text || "CSV export failed");
+      }
+
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "subscribers.csv";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+
+      window.URL.revokeObjectURL(url);
+      setStatus("CSV exported ✅");
+      setTimeout(() => setStatus(""), 1500);
+    } catch (e) {
+      setStatus("Error: " + (e.message || "CSV export failed"));
+    }
   };
 
   return (
@@ -131,7 +166,7 @@ export default function AdminSubscribers() {
           <button className="as-btn ghost" onClick={fetchList} disabled={loading}>
             {loading ? "Refreshing..." : "Refresh"}
           </button>
-          <button className="as-btn" onClick={exportCSV}>
+          <button className="as-btn" onClick={exportCSV} disabled={loading}>
             Export CSV
           </button>
         </div>
